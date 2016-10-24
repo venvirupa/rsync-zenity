@@ -1,11 +1,13 @@
 #!/bin/bash
 # Nautilus script to sync specified folder to another destination via rsync.
 # Put this to ~/.gnome2/nautilus-scripts
-# Written by Anton Keks
+# Written by Anton Keks added export 
 
 paths_file=$(readlink -f $0).paths
 locations=`cat $paths_file`
 sources=`cat $paths_file | awk -F'|' '{print $1}'`
+export XAUTHORITY=/home/yourusername/.Xauthority
+DISPLAY=:0.0 zenity --question --text "Backup time .. is HDD connected?"
 
 if [ "$1" ]; then
   source=$1 
