@@ -1,100 +1,78 @@
 #!/bin/bash
 # Nautilus script to sync specified folder to another destination via rsync.
-# Put this to ~/.gnome2/nautilus-scripts
+# Put this to ~/.gnome2/nautilus-scripts 
 # Written by Anton Keks
+#!/bin/bash
+# Nautilus script to sync specified folder to another destination via rsync.
+# Put this to ~/.gnome2/nautilus-scripts
+# Written by Stephen Piuk based on script  by Anton Keks
 
 paths_file=$(readlink -f $0).paths
+slash="/"
+date_file=$(pwd)$slash.lastrun
+
+
+#pw_dir= `pwd`
 locations=`cat $paths_file`
 sources=`cat $paths_file | awk -F'|' '{print $1}'`
 
-if [ "$1" ]; then
-  source=$1 
-else
-  # add current directory also to the list
-  sources=`echo -e "$sources\\n$PWD" | sort -u`
-  # ask user to chose one of the sources
-  source=`zenity --list --title="Sync source" --text="No source was specified. Please choose what do you want to sync" --column=Source "$sources" Other...` || exit 1
-  if [ "$source" = Other... ]; then
-    source=`zenity --entry --title="Sync source" --text="Please enter the source path on local computer" --entry-text="$PWD"` || exit 1
-  fi
-fi
+#note this last part is so the script doesn't need to be run more than once a day needs fixing tip try putting the string
+#in the dialog then run via crontab then you see it is not right ... didn't need to fix used anacron to launch it :)
+
+datestr=`more  $date_file`
+
+#if [ $datestr = `date +"%D"` ]; then
+#exit;
+#fi
+
+
+echo "last date of back up was completed on the "$datestr
+#export authorisation so that you can display on this monitor
+export XAUTHORITY=/home/youruser888/.Xauthority
+#DISPLAY=:0.0 zenity --question --text "Backup time .. is HDD connected?"
 
 # normalize and remove trailing /
-source=`readlink -f "$source"`
-source=${source%/}
 
-if [ ! -d "$source" ]; then
-  zenity --error --text="$source is not a directory"; exit 2
+
+#source=`readlink -f "$source"`
+#source=${source%/}
+
+if  [ -f "$source" ]; then
+
+
+DISPLAY=:0.0  zenity --error --text="$source is not a directory it is a file or invalid directory exiting script."; exit 2
 fi
 
 if [ $2 ]; then
   # TODO: support multiple sources
-  zenity --warning --text="Only one directory can be synched, using $source"
+ DISPLAY=:0.0 zenity --warning --text="Only one directory can be synced, using $source"
 fi
 
-# find matching destinations from stored ones
-destinations=""
-for s in $sources; do
-  if echo "$source" | fgrep $s; then
-    dest=`fgrep "$s" $paths_file | awk -F'|' '{print $2}'`
-    suffix=${source#$s}
-    suffix=${suffix%/*}
-    destinations="$destinations $dest$suffix" 
-  fi
-done
 
-# ask user to chose one of the matching destinations of enter a new one
-dest=`zenity --list --title="Sync destination" --text="Choose where to sync $source" --column=Destination $destinations New...` || exit 3
-if [ $dest = New... ]; then
-  basename=`basename "$source"`
-  dest=`zenity --entry --title="Sync destination" --text="Please enter the destination (either local path or rsync's remote descriptor), omitting $basename" --entry-text="user@host:$(dirname $source)"` || exit 3
-  echo "$source|$dest" >> $paths_file
-fi
 
-# check if user is not trying to do something wrong with rsync
-if [ `basename "$source"` = `basename "$dest"` ]; then
-  # sync contents of source to dest
-  source="$source/"
-fi
+DISPLAY=:0.0 zenity --warning --text="Time for backing up your system . Please minimise any user tasks for a minute or so while this process occurs to avoid errors and a slow down of the archive activity you will be notified of completion by a window like this one, thanks for your patience and reading this huge dialog window, don't forget to connect any back up external drives to the USB port if you have set up those as your preferred storage device. The home (source) directory is /home/youruser888/Downloads,Pictures,Documents,Desktop,Music etc to the destination directories /mnt/D210AE5D10AE47F5 and /media/youruser888/D210AE5D10AE47F5 you can edit these paths in the Bash script file that this was run from. Last back up was performed on the date "`date +%D`". Script programming help follows "$date_file"present working directory is "`pwd`
 
-log_file=/tmp/Sync.log
-rsync_opts=-rltEorzh
-echo -e "The following changes will be performed by rsync (see man rsync for info on itemize-changes):\\n$source -> $dest\\n" > $log_file
-( echo x; rsync -ni $rsync_opts --delete "$source" "$dest" 2>&1 >> $log_file ) | zenity --progress --pulsate --auto-close --width=350 --title="Retrieving sync information" 
+# chage the yourUser888 to your user name and D210AE5D10AE47F5 to your backup devices string
+# check your devices with ls /media
 
-if [ $? -ne 0 ]; then
-  zenity --error --title="Sync" --text="Rsync failed: `cat $log_file`"; exit 4
-fi
+rsync -vrlptD "/home/youruser888/Backupscripts" "/media/youruser888/D210AE5D10AE47F5/youruser888"
+rsync -vrlptD "/home/youruser888/Downloads" "/media/youruser888/D210AE5D10AE47F5/youruser888"
+rsync -vrlptD "/home/youruser888/Pictures" "/media/youruser888/D210AE5D10AE47F5/youruser888"
+rsync -vrlptD "/home/youruser888/Documents" "/media/youruser888/D210AE5D10AE47F5/youruser888"
+rsync -vrlptD "/home/youruser888/Desktop" "/media/youruser888/D210AE5D10AE47F5/youruser888"
+rsync -vrlptD "/home/youruser888/Music" "/media/youruser888/D210AE5D10AE47F5/youruser888"
 
-num_files=`cat $log_file | wc -l`
-num_files=$((num_files-3))
+# system sometimes mounts them on /mnt instead of /media
 
-if [ $num_files -le 0 ]; then
-  zenity --info --title="Sync" --text="All files are up to date on $dest"; exit
-fi
+rsync -vrlptD "/home/youruser888/Backupscripts" "/mnt/D210AE5D10AE47F5/youruser888"
+rsync -vrlptD "/home/youruser888/Downloads" "/mnt/D210AE5D10AE47F5/youruser888"
+rsync -vrlptD "/home/youruser888/Pictures" "/mnt/D210AE5D10AE47F5/youruser888"
+rsync -vrlptD "/home/youruser888/Documents" "/mnt/D210AE5D10AE47F5/youruser888"
+rsync -vrlptD "/home/youruser888/Desktop" "/mnt/D210AE5D10AE47F5/youruser888"
+rsync -vrlptD "/home/youruser888/Music" "/mnt/D210AE5D10AE47F5/youruser888"
 
-zenity --text-info --title="Sync review ($num_files changes)" --filename=$log_file --width=500 --height=500 || exit 4
+#date +"%D" > .lastrun
+date  > .lastrun
+DISPLAY=:0.0 zenity --warning --text="Completed back up, you can go back to watching TV now."
 
-num_deleted=`fgrep delet $log_file | wc -l`
-if [ $num_deleted -ge 100 ]; then
-  zenity --question --title="Sync" --text="$num_deleted files are going to be deleted from $dest, do you still want to continue?" --ok-label="Continue" || exit 4
-fi
-
-rsync_progress_awk="{	
-	if (\$0 ~ /to-check/) {
-		last_speed=\$(NF-3)
-	}
-	else {
-		print \"#\" \$0 \" - \" files \"/\" $num_files \" - \" last_speed;
-		files++;
-		print files/$num_files*100 \"%\";
-	}
-	fflush();
-}
-END {
-	print \"#Done, \" files \" changes, \" last_speed
-}"
-
-# note: delete-delay below means that any files will be deleted only as a last step
-rsync $rsync_opts --delete-delay --progress "$source" "$dest" | awk "$rsync_progress_awk" | zenity --progress --width=350 --title="Synchronizing $source" || exit 4
 
